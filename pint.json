@@ -1,0 +1,7 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "ordered_imports": true,
+        "declare_strict_types": true
+    }
+}

@@ -1,0 +1,55 @@
+services:
+  app:
+    build: { context: ., dockerfile: Dockerfile }
+    container_name: chasqui-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes: [./:/var/www]
+    networks: [chasqui-network]
+    depends_on: [db, redis]
+    environment:
+      APP_ENV: local
+      DB_HOST: db
+      REDIS_HOST: redis
+
+  nginx:
+    image: nginx:alpine
+    container_name: chasqui-nginx
+    restart: unless-stopped
+    ports: ["8080:80"]
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks: [chasqui-network]
+    depends_on: [app]
+
+  db:
+    image: postgres:17-alpine
+    container_name: chasqui-db
+    restart: unless-stopped
+    ports: ["5433:5432"]
+    environment:
+      POSTGRES_DB: chasqui
+      POSTGRES_USER: chasqui
+      POSTGRES_PASSWORD: secret
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    networks: [chasqui-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chasqui"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: chasqui-redis
+    restart: unless-stopped
+    ports: ["6380:6379"]
+    networks: [chasqui-network]
+
+networks:
+  chasqui-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
