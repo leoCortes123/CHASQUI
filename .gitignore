@@ -26,3 +26,14 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Config local de Claude Code y del editor: es de esta máquina, no del proyecto.
+.claude/settings.local.json
+.obsidian/
+
+# Artefactos de compilación de Laravel: se regeneran, no se versionan.
+bootstrap/cache/*.php
+storage/framework/views/*.php
+storage/framework/cache/
+storage/framework/sessions/
+storage/logs/

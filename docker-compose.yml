@@ -2,7 +2,7 @@ services:
   app:
     build: { context: ., dockerfile: Dockerfile }
     container_name: chasqui-app
-    restart: unless-stopped
+    restart: "no"
     working_dir: /var/www
     volumes: [./:/var/www]
     networks: [chasqui-network]
@@ -15,7 +15,7 @@ services:
   nginx:
     image: nginx:alpine
     container_name: chasqui-nginx
-    restart: unless-stopped
+    restart: "no"
     ports: ["8080:80"]
     volumes:
       - ./:/var/www
@@ -26,7 +26,7 @@ services:
   db:
     image: postgres:17-alpine
     container_name: chasqui-db
-    restart: unless-stopped
+    restart: "no"
     ports: ["5433:5432"]
     environment:
       POSTGRES_DB: chasqui
@@ -43,7 +43,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: chasqui-redis
-    restart: unless-stopped
+    restart: "no"
     ports: ["6380:6379"]
     networks: [chasqui-network]
 

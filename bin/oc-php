@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Ejecuta el toolchain PHP dentro del contenedor `app`.
+#
+# Por qué existe:
+#   - el host no tiene PHP ni composer, todo vive en docker-compose;
+#   - /mnt/datos es NTFS, así que ningún fichero tiene bit de ejecución: los binarios de
+#     vendor/bin/ no se pueden invocar directos (`pint: Permission denied`) y hay que pasar
+#     por `php vendor/bin/<tool>`. Por eso `composer ci` no funciona y existen los atajos;
+#   - NTFS presenta los ficheros como uid 0, así que dentro del contenedor hay que ser root
+#     para escribir en storage/ (si no, los tests revientan al escribir laravel.log).
+#
+#   bash bin/oc-php ci                              # lint + stan + test
+#   bash bin/oc-php test --filter="reanuda"
+#   bash bin/oc-php php artisan db:seed --class=AsistenteGeneralSeeder
+set -euo pipefail
+
+RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$RAIZ"
+
+if [ $# -eq 0 ]; then
+    echo "uso: bash bin/oc-php <ci|lint|fmt|stan|test|comando> [args...]" >&2
+    exit 64
+fi
+
+# Levanta los servicios si el contenedor de la app no está corriendo.
+if [ -z "$(docker compose ps -q --status running app 2>/dev/null)" ]; then
+    echo "==> levantando app, db y redis…" >&2
+    docker compose up -d app db redis >&2
+    for _ in $(seq 1 30); do
+        [ -n "$(docker compose ps -q --status running app 2>/dev/null)" ] && break
+        sleep 1
+    done
+fi
+
+en_contenedor() {
+    docker compose exec -T -u root app "$@"
+}
+
+# opencode pasa rutas absolutas del host ($FILE en el formatter); dentro del contenedor
+# el proyecto está montado en /var/www.
+traducir_rutas() {
+    local arg
+    for arg in "$@"; do
+        printf '%s\n' "${arg/#$RAIZ//var/www}"
+    done
+}
+
+case "$1" in
+    lint) shift; en_contenedor php vendor/bin/pint --test "$@" ;;
+    fmt)
+        shift
+        mapfile -t rutas < <(traducir_rutas "$@")
+        en_contenedor php vendor/bin/pint "${rutas[@]}"
+        ;;
+    stan) shift; en_contenedor php vendor/bin/phpstan analyse --memory-limit=512M "$@" ;;
+    test) shift; en_contenedor php vendor/bin/pest "$@" ;;
+    ci)
+        en_contenedor php vendor/bin/pint --test
+        en_contenedor php vendor/bin/phpstan analyse --memory-limit=512M
+        en_contenedor php vendor/bin/pest
+        ;;
+    *) en_contenedor "$@" ;;
+esac

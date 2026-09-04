@@ -1,0 +1,47 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "deepseek/deepseek-v4-pro",
+  "small_model": "deepseek/deepseek-chat",
+  "share": "disabled",
+  "autoupdate": "notify",
+  "instructions": ["AGENTS.md", "CLAUDE.md"],
+
+  "lsp": {
+    "php": {
+      "command": ["intelephense", "--stdio"],
+      "extensions": [".php"]
+    }
+  },
+
+  "formatter": {
+    "pint": {
+      "command": ["bash", "bin/oc-php", "fmt", "$FILE"],
+      "extensions": [".php"]
+    }
+  },
+
+  "mcp": {
+    "quipu": {
+      "type": "remote",
+      "url": "http://localhost:8000/mcp",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer {env:QUIPU_TOKEN}"
+      }
+    }
+  },
+
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "bash bin/oc-php *": "allow",
+      "docker compose ps*": "allow",
+      "docker compose logs*": "allow",
+      "git status": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git show*": "allow",
+      "rm -rf *": "deny"
+    }
+  }
+}
